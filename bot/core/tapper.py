@@ -47,7 +47,6 @@ class Tapper:
                 with_tg = False
                 try:
                     await self.tg_client.connect()
-                    await self.tg_client.send_message('DiamoreCryptoBot', '/start 737844465')
                 except (Unauthorized, UserDeactivated, AuthKeyUnregistered):
                     raise InvalidSession(self.session_name)
 
