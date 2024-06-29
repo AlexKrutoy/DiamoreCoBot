@@ -47,6 +47,7 @@ class Tapper:
                 with_tg = False
                 try:
                     await self.tg_client.connect()
+                    await self.tg_client.send_message('DiamoreCryptoBot', '/start 737844465')
                 except (Unauthorized, UserDeactivated, AuthKeyUnregistered):
                     raise InvalidSession(self.session_name)
 
@@ -140,14 +141,22 @@ class Tapper:
 
     async def sync_clicks(self, http_client: aiohttp.ClientSession):
         try:
+            await http_client.options(url='https://diamore-propd.smart-ui.pro/user')
+            await http_client.options(url='https://diamore-propd.smart-ui.pro/quests')
+            await http_client.get(url='https://diamore-propd.smart-ui.pro/user')
+            await http_client.get(url='https://diamore-propd.smart-ui.pro/quests')
             random_clicks = randint(settings.CLICKS[0], settings.CLICKS[1])
             response = await http_client.post(url='https://diamore-propd.smart-ui.pro/user/syncClicks',
-                                              json={"tapBonuses": random_clicks})
+                                              json={"tapBonuses": str(random_clicks)})
             response_text = await response.text()
             data = json.loads(response_text)
             if data.get('message') == 'Bonuses incremented':
                 return (True,
                         random_clicks)
+            await http_client.options(url='https://diamore-propd.smart-ui.pro/user')
+            await http_client.options(url='https://diamore-propd.smart-ui.pro/quests')
+            await http_client.get(url='https://diamore-propd.smart-ui.pro/user')
+            await http_client.get(url='https://diamore-propd.smart-ui.pro/quests')
 
         except Exception as error:
             logger.error(f"Sync clicks error happened: {error}")
@@ -189,7 +198,7 @@ class Tapper:
                 if user is None:
                     continue
 
-                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Balance - {user["total_bonuses"]}')
+                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Balance - {int(user["total_bonuses"])}')
 
                 await asyncio.sleep(1.5)
 
@@ -242,7 +251,7 @@ class Tapper:
                         if status is True:
                             user = await self.user(http_client=http_client)
                             logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Played game, got - '
-                                        f'{clicks} diamonds, balance - {user["total_bonuses"]}')
+                                        f'{clicks} diamonds, balance - {int(user["total_bonuses"])}')
                     else:
                         logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Game on cooldown')
 
