@@ -234,7 +234,8 @@ class Tapper:
                                         f'{quest_name} quest')
 
                 await asyncio.sleep(1.5)
-
+                
+                next_tap_delay = None
                 limit_date_str = user.get("limitDate")
                 if limit_date_str or limit_date_str is None:
                     if limit_date_str:
@@ -252,11 +253,18 @@ class Tapper:
                                         f'{clicks} diamonds, balance - {int(user["total_bonuses"])}')
                     else:
                         logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Game on cooldown')
+                        next_tap_delay = limit_date - current_time_utc
 
                 await asyncio.sleep(1.5)
+                
+                if next_tap_delay is None or next_tap_delay.seconds > 3600:
+                    sleep_time = randint(3500, 3600)
+                else:
+                    sleep_time = next_tap_delay.seconds
 
-                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | sleep 1 hour')
-                await asyncio.sleep(3600)
+                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | sleep {round(sleep_time / 60, 2)} min')
+                await asyncio.sleep(sleep_time)
+                
             except InvalidSession as error:
                 raise error
 
