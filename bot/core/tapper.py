@@ -142,21 +142,19 @@ class Tapper:
     async def sync_clicks(self, http_client: aiohttp.ClientSession):
         try:
             await http_client.options(url='https://diamore-propd.smart-ui.pro/user')
-            await http_client.options(url='https://diamore-propd.smart-ui.pro/quests')
-            await http_client.get(url='https://diamore-propd.smart-ui.pro/user')
-            await http_client.get(url='https://diamore-propd.smart-ui.pro/quests')
+            user_response = await http_client.get(url='https://diamore-propd.smart-ui.pro/user')
+            user_response.raise_for_status()
+            user_json = await user_response.json()
+            tap_bonuses = user_json['tap_bonuses']
             random_clicks = randint(settings.CLICKS[0], settings.CLICKS[1])
+            tap_bonuses += random_clicks
             response = await http_client.post(url='https://diamore-propd.smart-ui.pro/user/syncClicks',
-                                              json={"tapBonuses": str(random_clicks)})
+                                              json={"tapBonuses": tap_bonuses})
             response_text = await response.text()
             data = json.loads(response_text)
             if data.get('message') == 'Bonuses incremented':
                 return (True,
                         random_clicks)
-            await http_client.options(url='https://diamore-propd.smart-ui.pro/user')
-            await http_client.options(url='https://diamore-propd.smart-ui.pro/quests')
-            await http_client.get(url='https://diamore-propd.smart-ui.pro/user')
-            await http_client.get(url='https://diamore-propd.smart-ui.pro/quests')
 
         except Exception as error:
             logger.error(f"Sync clicks error happened: {error}")
@@ -236,7 +234,8 @@ class Tapper:
                                         f'{quest_name} quest')
 
                 await asyncio.sleep(1.5)
-
+                
+                next_tap_delay = None
                 limit_date_str = user.get("limitDate")
                 if limit_date_str or limit_date_str is None:
                     if limit_date_str:
@@ -254,11 +253,18 @@ class Tapper:
                                         f'{clicks} diamonds, balance - {int(user["total_bonuses"])}')
                     else:
                         logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Game on cooldown')
+                        next_tap_delay = limit_date - current_time_utc
 
                 await asyncio.sleep(1.5)
+                
+                if next_tap_delay is None or next_tap_delay.seconds > 3600:
+                    sleep_time = randint(3500, 3600)
+                else:
+                    sleep_time = next_tap_delay.seconds
 
-                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | sleep 1 hour')
-                await asyncio.sleep(3600)
+                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | sleep {round(sleep_time / 60, 2)} min')
+                await asyncio.sleep(sleep_time)
+                
             except InvalidSession as error:
                 raise error
 
