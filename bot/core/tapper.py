@@ -145,11 +145,11 @@ class Tapper:
             user_response = await http_client.get(url='https://diamore-propd.smart-ui.pro/user')
             user_response.raise_for_status()
             user_json = await user_response.json()
-            tap_bonuses = user_json['tap_bonuses']
+            #tap_bonuses = user_json['tap_bonuses']
             random_clicks = randint(settings.CLICKS[0], settings.CLICKS[1])
-            tap_bonuses += random_clicks
+            #tap_bonuses += random_clicks
             response = await http_client.post(url='https://diamore-propd.smart-ui.pro/user/syncClicks',
-                                              json={"tapBonuses": tap_bonuses})
+                                              json={"tapBonuses": random_clicks})
             response_text = await response.text()
             data = json.loads(response_text)
             if data.get('message') == 'Bonuses incremented':
@@ -196,7 +196,7 @@ class Tapper:
                 if user is None:
                     continue
 
-                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Balance - {int(user["total_bonuses"])}')
+                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Balance - {int(user["balance"])}')
 
                 await asyncio.sleep(1.5)
 
@@ -250,7 +250,7 @@ class Tapper:
                         if status is True:
                             user = await self.user(http_client=http_client)
                             logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Played game, got - '
-                                        f'{clicks} diamonds, balance - {int(user["total_bonuses"])}')
+                                        f'{clicks} diamonds, balance - {int(user["balance"])}')
                     else:
                         logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Game on cooldown')
                         next_tap_delay = limit_date - current_time_utc
