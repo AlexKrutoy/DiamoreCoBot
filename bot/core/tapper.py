@@ -196,7 +196,7 @@ class Tapper:
                 if user is None:
                     continue
 
-                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Balance - {int(user["balance"])}')
+                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Balance - {int(float(user["balance"]))}')
 
                 await asyncio.sleep(1.5)
 
@@ -250,7 +250,7 @@ class Tapper:
                         if status is True:
                             user = await self.user(http_client=http_client)
                             logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Played game, got - '
-                                        f'{clicks} diamonds, balance - {int(user["balance"])}')
+                                        f'{clicks} diamonds, balance - {int(float(user["balance"]))}')
                     else:
                         logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Game on cooldown')
                         next_tap_delay = limit_date - current_time_utc
