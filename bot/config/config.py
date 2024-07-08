@@ -9,6 +9,8 @@ class Settings(BaseSettings):
 
     CLICKS: list[int] = [300, 1000]
 
+    REF_ID: str = ''
+
     USE_PROXY_FROM_FILE: bool = False
 
 

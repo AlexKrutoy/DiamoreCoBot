@@ -8,7 +8,8 @@ from aiohttp_proxy import ProxyConnector
 from better_proxy import Proxy
 from pyrogram import Client
 from pyrogram.errors import Unauthorized, UserDeactivated, AuthKeyUnregistered, FloodWait
-from pyrogram.raw.functions.messages import RequestWebView
+from pyrogram.raw.functions.messages import RequestAppWebView
+from pyrogram.raw.types import InputBotAppShortName
 from bot.core.agents import generate_random_user_agent
 from bot.config import settings
 
@@ -47,7 +48,6 @@ class Tapper:
                 with_tg = False
                 try:
                     await self.tg_client.connect()
-                    await self.tg_client.send_message('DiamoreCryptoBot', '/start 737844465')
                 except (Unauthorized, UserDeactivated, AuthKeyUnregistered):
                     raise InvalidSession(self.session_name)
 
@@ -63,12 +63,18 @@ class Tapper:
 
                     await asyncio.sleep(fls + 3)
 
-            web_view = await self.tg_client.invoke(RequestWebView(
+            bot = await self.tg_client.resolve_peer('DiamoreCryptoBot')
+            app = InputBotAppShortName(bot_id=bot, short_name="app")
+            if settings.REF_ID == '':
+                start_param = '737844465'
+            else:
+                start_param = settings.REF_ID
+            web_view = await self.tg_client.invoke(RequestAppWebView(
                 peer=peer,
-                bot=peer,
+                app=app,
                 platform='android',
-                from_bot_menu=False,
-                url="https://diamore-app.vercel.app/",
+                write_allowed=True,
+                start_param=start_param
             ))
 
             auth_url = web_view.url
@@ -178,15 +184,7 @@ class Tapper:
 
         tg_web_data = await self.get_tg_web_data(proxy=proxy)
 
-        tg_web_data_parts = tg_web_data.split('&')
-        query_id = tg_web_data_parts[0].split('=')[1]
-        user_data = tg_web_data_parts[1].split('=')[1]
-        auth_date = tg_web_data_parts[2].split('=')[1]
-        hash_value = tg_web_data_parts[3].split('=')[1]
-
-        user_data_encoded = quote(user_data)
-
-        init_data = f"query_id={query_id}&user={user_data_encoded}&auth_date={auth_date}&hash={hash_value}"
+        init_data = unquote(tg_web_data)
         http_client.headers["User-Agent"] = generate_random_user_agent(device_type='android', browser_type='chrome')
         http_client.headers['Authorization'] = f'Token {init_data}'
 
@@ -234,7 +232,7 @@ class Tapper:
                                         f'{quest_name} quest')
 
                 await asyncio.sleep(1.5)
-                
+
                 next_tap_delay = None
                 limit_date_str = user.get("limitDate")
                 if limit_date_str or limit_date_str is None:
@@ -256,7 +254,7 @@ class Tapper:
                         next_tap_delay = limit_date - current_time_utc
 
                 await asyncio.sleep(1.5)
-                
+
                 if next_tap_delay is None or next_tap_delay.seconds > 3600:
                     sleep_time = randint(3500, 3600)
                 else:
