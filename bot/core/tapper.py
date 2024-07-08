@@ -184,7 +184,7 @@ class Tapper:
 
         tg_web_data = await self.get_tg_web_data(proxy=proxy)
 
-        init_data = unquote(tg_web_data)
+        init_data = quote(tg_web_data)
         http_client.headers["User-Agent"] = generate_random_user_agent(device_type='android', browser_type='chrome')
         http_client.headers['Authorization'] = f'Token {init_data}'
 
