@@ -18,6 +18,7 @@
 | Auto-game                                                 |     ✅     |
 | Auto-Quests                                               |     ✅     |
 | Proxy binding to session                                  |     ✅     |
+| Auto referral                                             |     ✅     |
 | Support for tdata / pyrogram .session / telethon .session |     ✅     |
 
 
@@ -26,6 +27,7 @@
 |-------------------------|:--------------------------------------------------------------------------:|
 | **API_ID / API_HASH**   |  Platform data from which to run the Telegram session (default - android)  |
 | **CLICKS**              |         How much clicks bot will get in game (default [300, 1000])         |
+| **REF_ID**              | Argument from referral bot link after ?startapp={argument}                 |
 | **USE_PROXY_FROM_FILE** | Whether to use a proxy from the bot/config/proxies.txt file (True / False) |
 
 ## Quick Start 📚
