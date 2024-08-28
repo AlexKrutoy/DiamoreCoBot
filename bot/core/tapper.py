@@ -79,8 +79,7 @@ class Tapper:
 
             auth_url = web_view.url
             tg_web_data = unquote(
-                string=unquote(
-                    string=auth_url.split('tgWebAppData=', maxsplit=1)[1].split('&tgWebAppVersion', maxsplit=1)[0]))
+                string=auth_url.split('tgWebAppData=', maxsplit=1)[1].split('&tgWebAppVersion', maxsplit=1)[0])
 
             if with_tg is False:
                 await self.tg_client.disconnect()
@@ -97,8 +96,8 @@ class Tapper:
 
     async def user(self, http_client: aiohttp.ClientSession):
         try:
-            await http_client.post(url='https://diamore-propd.smart-ui.pro/user/visit')
-            response = await http_client.get(url='https://diamore-propd.smart-ui.pro/user')
+            await http_client.post(url='https://api.diamore.co/user/visit')
+            response = await http_client.get(url='https://api.diamore.co/user')
             response.raise_for_status()
             response_text = await response.text()
             app_user_data = json.loads(response_text)
@@ -109,7 +108,7 @@ class Tapper:
 
     async def claim_daily(self, http_client: aiohttp.ClientSession):
         try:
-            response = await http_client.post(url='https://diamore-propd.smart-ui.pro/user/claim-daily')
+            response = await http_client.post(url='https://api.diamore.co/user/claim-daily')
             response_text = await response.text()
             claim_daily = json.loads(response_text)
             return claim_daily
@@ -119,7 +118,7 @@ class Tapper:
 
     async def get_quests(self, http_client: aiohttp.ClientSession):
         try:
-            response = await http_client.get(url='https://diamore-propd.smart-ui.pro/quests')
+            response = await http_client.get(url='https://api.diamore.co/quests')
             response_text = await response.text()
             data = json.loads(response_text)
             quests_with_timer = []
@@ -134,7 +133,7 @@ class Tapper:
 
     async def finish_quests(self, http_client: aiohttp.ClientSession, quest_name: str):
         try:
-            response = await http_client.post(url='https://diamore-propd.smart-ui.pro/quests/finish',
+            response = await http_client.post(url='https://api.diamore.co/quests/finish',
                                               json={"questName": f'{quest_name}'})
             response_text = await response.text()
             data = json.loads(response_text)
@@ -147,14 +146,11 @@ class Tapper:
 
     async def sync_clicks(self, http_client: aiohttp.ClientSession):
         try:
-            await http_client.options(url='https://diamore-propd.smart-ui.pro/user')
-            user_response = await http_client.get(url='https://diamore-propd.smart-ui.pro/user')
+            await http_client.options(url='https://api.diamore.co/user')
+            user_response = await http_client.get(url='https://api.diamore.co/user')
             user_response.raise_for_status()
-            user_json = await user_response.json()
-            #tap_bonuses = user_json['tap_bonuses']
             random_clicks = randint(settings.CLICKS[0], settings.CLICKS[1])
-            #tap_bonuses += random_clicks
-            response = await http_client.post(url='https://diamore-propd.smart-ui.pro/user/syncClicks',
+            response = await http_client.post(url='https://api.diamore.co/user/syncClicks',
                                               json={"tapBonuses": random_clicks})
             response_text = await response.text()
             data = json.loads(response_text)
@@ -164,6 +160,55 @@ class Tapper:
 
         except Exception as error:
             logger.error(f"Sync clicks error happened: {error}")
+            return None
+
+    async def get_ads_limit(self, http_client: aiohttp.ClientSession):
+        try:
+            response = await http_client.get(url='https://api.diamore.co/ads')
+            resp_json = await response.json()
+            return resp_json.get('available')
+        except Exception as error:
+            logger.error(f"Get ads limit error happened: {error}")
+            return 0
+
+    async def get_upgrades(self, http_client: aiohttp.ClientSession):
+        try:
+            response = await http_client.get(url='https://api.diamore.co/upgrades')
+            resp_json = await response.json()
+            current_tap_power = resp_json['tapPower'][0]
+            future_tap_power = resp_json['tapPower'][1]
+
+            current_tap_duration = resp_json['tapDuration'][0]
+            future_tap_duration = resp_json['tapDuration'][1]
+
+            current_tap_cooldown = resp_json['tapCoolDown'][0]
+            future_tap_cooldown = resp_json['tapCoolDown'][1]
+            return (current_tap_power, future_tap_power, current_tap_duration, future_tap_duration,
+                    current_tap_cooldown, future_tap_cooldown)
+        except Exception as error:
+            logger.error(f"Get upgrades error happened: {error}")
+            return None
+
+    async def do_upgrade(self, http_client: aiohttp.ClientSession, type: str):
+        try:
+            response = await http_client.post(url='https://api.diamore.co/upgrades/buy', json={"type": type})
+            resp_json = await response.json()
+            if resp_json.get('message') == 'Your level has been raised!':
+                return True
+            else:
+                return False
+        except Exception as error:
+            logger.error(f"Do upgrade error happened: {error}")
+            return False
+
+    async def watch_ad(self, http_client: aiohttp.ClientSession):
+        try:
+            response = await http_client.post(url='https://api.diamore.co/ads/watch', json={"type": "adsgram"})
+            resp_json = await response.json()
+            if resp_json.get('message') == 'Ad bonus applied!':
+                return True
+        except Exception as error:
+            logger.error(f"Watch ads error happened: {error}")
             return None
 
     async def check_proxy(self, http_client: aiohttp.ClientSession, proxy: Proxy) -> None:
@@ -184,9 +229,8 @@ class Tapper:
 
         tg_web_data = await self.get_tg_web_data(proxy=proxy)
 
-        init_data = quote(tg_web_data)
         http_client.headers["User-Agent"] = generate_random_user_agent(device_type='android', browser_type='chrome')
-        http_client.headers['Authorization'] = f'Token {init_data}'
+        http_client.headers['Authorization'] = f'Token {tg_web_data}'
 
         while True:
             try:
@@ -194,7 +238,8 @@ class Tapper:
                 if user is None:
                     continue
 
-                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Balance - {int(float(user["balance"]))}')
+                logger.info(
+                    f'<light-yellow>{self.session_name}</light-yellow> | Balance - {int(float(user["balance"]))}')
 
                 await asyncio.sleep(1.5)
 
@@ -213,7 +258,7 @@ class Tapper:
                     for quest_name in quests:
                         status = await self.finish_quests(http_client=http_client, quest_name=quest_name)
                         if status is True:
-                            logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Starting doing '
+                            logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Successfully done '
                                         f'{quest_name} quest')
                 elif user['quests']:
                     quests = await self.get_quests(http_client=http_client)
@@ -228,7 +273,7 @@ class Tapper:
                     for quest_name in new_quests:
                         status = await self.finish_quests(http_client=http_client, quest_name=quest_name)
                         if status is True:
-                            logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Starting doing '
+                            logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Successfully done '
                                         f'{quest_name} quest')
 
                 await asyncio.sleep(1.5)
@@ -247,22 +292,127 @@ class Tapper:
                         status, clicks = await self.sync_clicks(http_client=http_client)
                         if status is True:
                             user = await self.user(http_client=http_client)
-                            logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Played game, got - '
-                                        f'{clicks} diamonds, balance - {int(float(user["balance"]))}')
+                            logger.success(f'<light-yellow>{self.session_name}</light-yellow> | Played game, got - '
+                                           f'{clicks} diamonds, balance - {int(float(user["balance"]))}')
                     else:
                         logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Game on cooldown')
                         next_tap_delay = limit_date - current_time_utc
 
                 await asyncio.sleep(1.5)
 
+                ads_count = await self.get_ads_limit(http_client)
+                if ads_count:
+                    while ads_count > 0:
+                        status = await self.watch_ad(http_client)
+                        if status:
+                            logger.success(
+                                f'<light-yellow>{self.session_name}</light-yellow> | Watched ad to skip game '
+                                f'cooldown')
+                            status, clicks = await self.sync_clicks(http_client=http_client)
+                            user = await self.user(http_client=http_client)
+                            logger.success(f'<light-yellow>{self.session_name}</light-yellow> | Played game, got - '
+                                           f'{clicks} diamonds, balance - {int(float(user["balance"]))}')
+                        ads_count -= 1
+
+                if settings.AUTO_UPGRADE_REDUCE_COOLDOWN:
+                    while True:
+                        (current_tap_power, future_tap_power, current_tap_duration, future_tap_duration,
+                         current_tap_cooldown, future_tap_cooldown) = await self.get_upgrades(http_client)
+                        user = await self.user(http_client=http_client)
+                        if user is None:
+                            continue
+
+                        balance = int(float(user["balance"]))
+                        level = current_tap_cooldown.get('level')
+                        price = int(float(current_tap_cooldown.get('price')))
+
+                        if level >= settings.AUTO_UPGRADE_REDUCE_COOLDOWN_LEVEL:
+                            break
+                        else:
+                            if balance >= price:
+                                status = await self.do_upgrade(http_client=http_client, type="tapCoolDown")
+                                if status:
+                                    logger.success(f'<light-yellow>{self.session_name}</light-yellow> | Successfully '
+                                                   f'upgraded game cooldown, level - {level+1}, balance - {balance-price}')
+                                else:
+                                    logger.error(f'<light-yellow>{self.session_name}</light-yellow> | Something wrong '
+                                                 f'in upgrade')
+                                    break
+                            else:
+                                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Not enough money to up'
+                                            f'grade game cooldown')
+                                break
+
+
+
+                if settings.AUTO_UPGRADE_CLICKING_POWER:
+                    while True:
+                        (current_tap_power, future_tap_power, current_tap_duration, future_tap_duration,
+                         current_tap_cooldown, future_tap_cooldown) = await self.get_upgrades(http_client)
+                        user = await self.user(http_client=http_client)
+                        if user is None:
+                            continue
+
+                        balance = int(float(user["balance"]))
+
+                        level = current_tap_power.get('level')
+                        price = int(float(current_tap_power.get('price')))
+
+                        if level >= settings.AUTO_UPGRADE_CLICKING_POWER_LEVEL:
+                            break
+                        else:
+                            if balance >= price:
+                                status = await self.do_upgrade(http_client=http_client, type="tapPower")
+                                if status:
+                                    logger.success(f'<light-yellow>{self.session_name}</light-yellow> | Successfully '
+                                                   f'upgraded game tap power, level - {level+1}, balance - {balance-price}')
+                                else:
+                                    logger.error(f'<light-yellow>{self.session_name}</light-yellow> | Something wrong '
+                                                 f'in upgrade')
+                                    break
+                            else:
+                                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Not enough money to up'
+                                            f'grade game tap power')
+                                break
+
+                if settings.AUTO_UPGRADE_TIMER:
+                    while True:
+                        (current_tap_power, future_tap_power, current_tap_duration, future_tap_duration,
+                         current_tap_cooldown, future_tap_cooldown) = await self.get_upgrades(http_client)
+                        user = await self.user(http_client=http_client)
+                        if user is None:
+                            continue
+
+                        balance = int(float(user["balance"]))
+
+                        level = current_tap_duration.get('level')
+                        price = int(float(current_tap_duration.get('price')))
+
+                        if level >= settings.AUTO_UPGRADE_TIMER_LEVEL:
+                            break
+                        else:
+                            if balance >= price:
+                                status = await self.do_upgrade(http_client=http_client, type="tapDuration")
+                                if status:
+                                    logger.success(f'<light-yellow>{self.session_name}</light-yellow> | Successfully '
+                                                   f'upgraded game duration, level - {level+1}, balance - {balance-price}')
+                                else:
+                                    logger.error(f'<light-yellow>{self.session_name}</light-yellow> | Something wrong '
+                                                 f'in upgrade')
+                                    break
+                            else:
+                                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Not enough money to up'
+                                            f'grade game duration')
+                                break
+
                 if next_tap_delay is None or next_tap_delay.seconds > 3600:
                     sleep_time = randint(3500, 3600)
                 else:
                     sleep_time = next_tap_delay.seconds
 
-                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | sleep {round(sleep_time / 60, 2)} min')
+                logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Sleep {round(sleep_time / 60, 2)} min')
                 await asyncio.sleep(sleep_time)
-                
+
             except InvalidSession as error:
                 raise error
 

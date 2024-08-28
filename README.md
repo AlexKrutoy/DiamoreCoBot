@@ -23,12 +23,18 @@
 
 
 ## [Settings](https://github.com/AlexKrutoy/DiamoreCoBot/blob/main/.env-example/)
-| Settings                |                                Description                                 |
-|-------------------------|:--------------------------------------------------------------------------:|
-| **API_ID / API_HASH**   |  Platform data from which to run the Telegram session (default - android)  |
-| **CLICKS**              |         How much clicks bot will get in game (default [300, 1000])         |
-| **REF_ID**              | Argument from referral bot link after ?startapp={argument}                 |
-| **USE_PROXY_FROM_FILE** | Whether to use a proxy from the bot/config/proxies.txt file (True / False) |
+| Settings                               |                                Description                                 |
+|----------------------------------------|:--------------------------------------------------------------------------:|
+| **API_ID / API_HASH**                  |  Platform data from which to run the Telegram session (default - android)  |
+| **CLICKS**                             |         How much clicks bot will get in game (default [300, 1000])         |
+| **AUTO_UPGRADE_CLICKING_POWER**        |            Auto upgrade clicking power or not (default - False)            |
+| **AUTO_UPGRADE_CLICKING_POWER_LEVEL**  |             Max level to upgrade clicking power (default - 20)             |
+| **AUTO_UPGRADE_TIMER**                 |            Auto upgrade game duration or not (default - False)             |
+| **AUTO_UPGRADE_TIMER_LEVEL**           |             Max level to upgrade game duration (default - 20)              |
+| **AUTO_UPGRADE_REDUCE_COOLDOWN**       |   Auto upgrade decreasing cooldown between games or not (default - True)   |
+| **AUTO_UPGRADE_REDUCE_COOLDOWN_LEVEL** |   Max level to upgrade decreasing cooldown between games (default - 20)    |
+| **REF_ID**                             |         Argument from referral bot link after ?startapp={argument}         |
+| **USE_PROXY_FROM_FILE**                | Whether to use a proxy from the bot/config/proxies.txt file (True / False) |
 
 ## Quick Start 📚
 
