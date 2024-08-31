@@ -108,10 +108,10 @@ class Tapper:
 
     async def claim_daily(self, http_client: aiohttp.ClientSession):
         try:
-            response = await http_client.post(url='https://api.diamore.co/user/claim-daily')
-            response_text = await response.text()
-            claim_daily = json.loads(response_text)
-            return claim_daily
+            response = await http_client.post(url='https://api.diamore.co/daily/claim')
+            if response.status in [200, 201]:
+                return True
+            return False
         except Exception as error:
             logger.error(f"Daily claim error happened: {error}")
             return None
@@ -146,15 +146,12 @@ class Tapper:
 
     async def sync_clicks(self, http_client: aiohttp.ClientSession):
         try:
-            await http_client.options(url='https://api.diamore.co/user')
-            user_response = await http_client.get(url='https://api.diamore.co/user')
-            user_response.raise_for_status()
             random_clicks = randint(settings.CLICKS[0], settings.CLICKS[1])
-            response = await http_client.post(url='https://api.diamore.co/user/syncClicks',
-                                              json={"tapBonuses": random_clicks})
+            response = await http_client.post(url='https://api.diamore.co/taps/claim',
+                                              json={"amount": str(random_clicks)})
             response_text = await response.text()
             data = json.loads(response_text)
-            if data.get('message') == 'Bonuses incremented':
+            if data.get('message') == 'Taps claimed':
                 return (True,
                         random_clicks)
 
@@ -211,6 +208,14 @@ class Tapper:
             logger.error(f"Watch ads error happened: {error}")
             return None
 
+    async def get_rewards(self, http_client: aiohttp.ClientSession):
+        try:
+            response = await http_client.get(url='https://api.diamore.co/daily/rewards')
+            resp_json = await response.json()
+            return resp_json
+        except Exception as error:
+            logger.error(f'Get rewards error happened: {error}')
+
     async def check_proxy(self, http_client: aiohttp.ClientSession, proxy: Proxy) -> None:
         try:
             response = await http_client.get(url='https://httpbin.org/ip', timeout=aiohttp.ClientTimeout(5))
@@ -243,11 +248,11 @@ class Tapper:
 
                 await asyncio.sleep(1.5)
 
-                if user['dailyBonusAvailable'] != 0:
+                rewards = await self.get_rewards(http_client)
+                if rewards.get('current') != "0":
                     claim_daily = await self.claim_daily(http_client=http_client)
-                    if claim_daily.get('message') == 'ok':
-                        logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Claimed daily - '
-                                    f'{str(user.get("dailyBonusAvailable"))}')
+                    if claim_daily:
+                        logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Claimed daily')
                 else:
                     logger.info(f'<light-yellow>{self.session_name}</light-yellow> | Daily bonus not available')
 
@@ -277,7 +282,6 @@ class Tapper:
                                         f'{quest_name} quest')
 
                 await asyncio.sleep(1.5)
-
                 next_tap_delay = None
                 limit_date_str = user.get("limitDate")
                 if limit_date_str or limit_date_str is None:
